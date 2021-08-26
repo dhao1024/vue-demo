@@ -16,17 +16,22 @@
       <v-comment v-else :comments="comments" @reply="addComment" />
     </section>
 
-    <comment-input v-if="editting" :to="to" :id="id" @close="close" />
+    <comment-form
+      v-if="openCommentForm"
+      :mentionedComment="mentionedComment"
+      @submit="flushComment"
+      @close="openCommentForm = false"
+    />
     <v-tip :enable="isBusy" />
   </div>
 </template>
 
 <script>
-import { reactive, toRefs } from "vue";
+import { reactive, toRefs, onMounted } from "vue";
 import IconSvg from "@/svg/IconSvg.vue";
 import VTip from "@/components/VTip.vue";
 import VComment from "@/components/VComment.vue";
-import CommentInput from "@/components/CommentInput.vue";
+import CommentForm from "@/components/CommentForm.vue";
 import { getComment } from "@/service";
 
 export default {
@@ -34,15 +39,19 @@ export default {
     IconSvg,
     VTip,
     VComment,
-    CommentInput,
+    CommentForm,
   },
 
   setup() {
     const state = reactive({
-      editting: false,
-      to: "",
-      id: 0,
-      comments: getComment(),
+      error: "",
+      loading: false,
+      comments: [],
+      openCommentForm: false,
+      mentionedComment: {
+        usrname: "",
+        id: 0,
+      },
       isBusy: false,
     });
 
@@ -59,20 +68,32 @@ export default {
           operated = false;
         }, 3000);
 
-        state.editting = true;
-        state.to = to;
-        state.id = id;
+        state.openCommentForm = true;
+        state.mentionedComment.usrname = to;
+        state.mentionedComment.id = id;
       }
     };
-    const close = () => {
-      state.editting = false;
-      state.comments = getComment();
+    const flushComment = async () => {
+      state.error = "";
+      state.loading = true;
+      try {
+        state.comments = await getComment();
+        state.comments.push(1);
+        state.comments.pop(1);
+      } catch (err) {
+        state.error = err.message;
+      }
+      state.loading = false;
     };
+
+    onMounted(() => {
+      flushComment();
+    });
 
     return {
       ...toRefs(state),
       addComment,
-      close,
+      flushComment,
     };
   },
 };
@@ -81,9 +102,6 @@ export default {
 <style lang="less" scoped>
 @import "~@/style/index.less";
 
-.main {
-  width: 100%;
-}
 .header {
   width: 100%;
   padding: 5px;
@@ -99,10 +117,5 @@ export default {
     width: 100px;
     height: 100px;
   }
-}
-
-.input-bar {
-  position: fixed;
-  background-color: #f0f0f0;
 }
 </style>

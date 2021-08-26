@@ -17,7 +17,7 @@
           </span>
           <span>
             <div>{{ username }}</div>
-            <div>{{ date }}</div>
+            <div>{{ date.slice(0, 10) }}</div>
           </span>
         </div>
         <div class="flex-container">

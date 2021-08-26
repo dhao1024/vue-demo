@@ -42,28 +42,51 @@ const comments = [
     ],
   },
 ];
-let _count = 2;
+
+let _count = comments.length;
+const DELAY = 1000;
 
 export function getComment() {
-  return JSON.parse(JSON.stringify(comments));
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(comments);
+    }, DELAY);
+  });
 }
 
 export function postComment({
-  username, email, content, to, id,
+  username, email, content, to, commentID,
 }) {
-  if (to) {
-    comments[_count - id - 1].replys.push({
-      username, email, content, to,
-    });
-  } else {
-    comments.unshift({
-      username,
-      email,
-      content,
-      date: new Date().toISOString().slice(0, 10),
-      like: 0,
-      id: _count++,
-      replys: [],
-    });
-  }
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      if (username === 'deny') {
+        resolve({
+          status: -1,
+          message: "test: username can't be `deny`",
+        });
+        return;
+      }
+
+      if (to) {
+        comments[_count - commentID - 1].replys.push({
+          username, email, content, to,
+        });
+      } else {
+        comments.unshift({
+          username,
+          email,
+          content,
+          date: new Date().toISOString(),
+          like: 0,
+          id: _count++,
+          replys: [],
+        });
+      }
+
+      resolve({
+        status: 0,
+        message: 'ok',
+      });
+    }, DELAY);
+  });
 }

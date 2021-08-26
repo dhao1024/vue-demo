@@ -1,7 +1,15 @@
 <template>
   <form
-    class="comment-input"
-    @submit.prevent="addComment({ username, email, content, to, id })"
+    class="comment-form"
+    @submit.prevent="
+      submit({
+        username,
+        email,
+        content,
+        to: mentionedComment.username,
+        commentID: mentionedComment.id,
+      })
+    "
   >
     <section class="form-item">
       <label for="username" class="left">用户名</label>
@@ -28,9 +36,13 @@
         required
       ></textarea>
     </section>
+    <section class="error-tip" v-if="error">
+      <span class="message">{{ error }}</span>
+    </section>
     <section class="action">
-      <span>
-        <label for="submit" class="button">完成</label>
+      <span class="button">
+        <label for="submit" v-if="!loading">完成</label>
+        <label v-else>等待</label>
         <input type="submit" id="submit" hidden />
       </span>
       <span class="button" @click="$emit('close')">取消</span>
@@ -44,32 +56,41 @@ import { postComment } from "@/service";
 
 export default {
   props: {
-    to: {
-      type: String,
-      default: "",
-    },
-    id: {
-      type: Number,
-      default: 0,
+    mentionedComment: {
+      type: Object,
+      default: { username: "", id: 0 },
     },
   },
-  emits: ["close"],
+  emits: ["submit", "close"],
 
   setup(props, { emit }) {
     const state = reactive({
+      error: "",
+      loading: false,
       username: "",
       email: "",
       content: "",
     });
 
-    const addComment = (comment) => {
-      postComment(comment);
-      emit("close");
+    const submit = async (data) => {
+      state.error = "";
+      state.loading = true;
+      try {
+        const res = await postComment(data);
+        if (res.status !== 0) {
+          throw new Error(res.message);
+        }
+        emit("submit");
+        emit("close");
+      } catch (err) {
+        state.error = err.message;
+      }
+      state.loading = false;
     };
 
     return {
       ...toRefs(state),
-      addComment,
+      submit,
     };
   },
 };
@@ -78,7 +99,7 @@ export default {
 <style lang="less" scoped>
 @import "~@/style/index.less";
 
-.comment-input {
+.comment-form {
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -102,6 +123,12 @@ export default {
       width: 75%;
       text-align: left;
     }
+  }
+}
+.error-tip {
+  text-align: center;
+  .message {
+    color: red;
   }
 }
 .action {
